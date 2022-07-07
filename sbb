@@ -1,0 +1,220 @@
+#!/bin/bash
+set -euo pipefail
+
+WORKING_DIR="./"
+BACKUP_DIR="/home/a/Documents/blog_bak"
+DRAFT_DIR="./drafts"
+TEMPLATE_DIR="./templates/"
+OUT_DIR="./out"
+POST_DIR="${OUT_DIR}/p"
+
+DATE=$(date)
+
+edit_post() {
+  posts=( $(ls -t $POST_DIR) )
+
+  c=0
+  for i in "${posts[@]}"; do
+    echo "[$c] $i"
+    c=$((c+1))
+  done
+
+  echo -e "index of post to edit> "
+  read selection
+  mv "$POST_DIR/${posts[$selection]}" "$DRAFT_DIR/${posts[$selection]}"
+
+  vim "$DRAFT_DIR/${posts[$selection]}/in.md"
+}
+
+remove_post() {
+  posts=( $(ls -t $POST_DIR) )
+
+  c=0
+  for i in "${posts[@]}"; do
+    echo "[$c] $i"
+    c=$((c+1))
+  done
+
+  echo -e "index of post to remove> "
+  read selection
+
+  rm -r "$POST_DIR/${posts[$selection]}"
+} 
+
+create_post() {
+  echo "title of new post> "
+  read title
+
+  post_dir="$DRAFT_DIR/$(echo $title | sed s'/ /_/g' | sed s'/\W//g')"
+  new_post="$post_dir/in.md"
+
+  mkdir -p $post_dir
+  echo $title > $new_post
+  echo $(date +%m/%d/%y) >> $new_post
+  echo >> $new_post
+  echo "---" >> $new_post
+  echo >> $new_post
+  echo >> $new_post
+
+  vim "$new_post/in.md"
+
+  echo "new draft created at $post_dir"
+}
+
+backup_post() {
+  if [ -z "$BACKUP_DIR" ]; then
+    mkdir -p $BACKUP_DIR
+  fi
+
+  cp -r $1 "$BACKUP_DIR/"
+}
+
+build_index() {
+  posts=( $(ls -t $POST_DIR) )
+  index_html="$OUT_DIR/index.html"
+
+  cat "$TEMPLATE_DIR/head_index.html" > $index_html
+
+  echo -e "<table id=\"posts\">\n" >> $index_html
+  echo -e "<tbody>\n" >> $index_html
+
+  for i in "${posts[@]}"; do
+    date=$(cat "$POST_DIR/$i/in.md" | head -n 2 | tail -n 1)
+    title=$(cat "$POST_DIR/$i/in.md" | head -n 1 | sed s'/\W //')
+
+    echo -e "<tr><td><span class=\"date\">$(date -d $date "+%b %y" | tr '[:upper:]' '[:lower:]')</span></td><td><a href=\"p/$i\">$title</a></div>\n" >> $index_html
+  done
+
+  echo -e "</tbody>\n" >> $index_html
+  echo -e "</table>\n" >> $index_html
+
+  # write link list
+  echo -e "<ul id=\"links\">\n" >> $index_html
+  echo -e "<li><a href=#>git</a></li> / \n" >> $index_html
+  echo -e "<li><a href=#>linkedin</a></li> /\n" >> $index_html
+  echo -e "</ul>\n" >> $index_html
+
+  cat "$TEMPLATE_DIR/foot.html" >> $index_html
+}
+
+assemble_post() {
+  index_html="$1/index.html"
+  post_html="$1/post.html"
+
+  if [ -f "$index_html" ]; then
+    rm $index_html
+  fi
+
+  pandoc -f markdown -t html -o $post_html "$1/in.md"
+
+  cat "$TEMPLATE_DIR/head_post.html" > $index_html
+  cat $post_html >> $index_html
+  rm $post_html
+
+  echo -e "<hr>\n" >> $index_html
+  echo -e "<p class=\"quote\"><span class=\"quote-text\">\"Practiced hands make for short work, and the Good Lord knows there is much to be done here.\"</span> - <span class=\"quote-source\">Joshua Graham</span></p>" >> $index_html
+
+  cat "$TEMPLATE_DIR/foot.html" >> $index_html
+}
+
+publish_posts() {
+  posts=( $(ls -tr $DRAFT_DIR) )
+  images=( $(find . -type f -exec ls {} \; | egrep ".*(png|jpeg|jpg)") )
+
+  if ! [ -z $images ]; then
+    for i in "${images[@]}"; do
+      if [ -n $(echo $i | grep "small") ]; then
+        size=320
+      elif [ -n $(echo $i | grep "medium") ]; then
+        size=640
+      elif [ -n $(echo $i | grep "large") ]; then
+        size=1024
+      fi
+    done
+
+    if [ $size -gt $(identify -format "%w" $i) ]; then
+      convert $i -resize $size > $i
+    fi
+  fi
+
+  for i in "${posts[@]}"; do
+    timestamp=$(cat "$DRAFT_DIR/$i/in.md" | head -n 2 | tail -n 1)
+    assemble_post "$DRAFT_DIR/$i"
+    backup_post "$DRAFT_DIR/$i"
+
+    touch -m -d $timestamp "$DRAFT_DIR/$i" $DRAFT_DIR/$i/*
+    mv "$DRAFT_DIR/$i" $POST_DIR/
+  done
+
+  build_index
+}
+
+fetch_posts() {
+  mv $POST_DIR/* $DRAFT_DIR/
+}
+
+sync_posts() {
+  rsync -qrzhP $OUT_DIR/* user@example.com:/remote/directory
+}
+
+print_usage() {
+  echo "usage: ./sbb {"
+  echo "  n(ew) [title] - create new draft"
+  echo "  p(ublish) - publish all posts to the blog"
+  echo "  e(dit) - move a post back to draft folder for editing"
+  echo "  f(etch) - move all posts back to draft folder"
+  echo "  r(emove) - permanently remove a published post"
+  echo "  s(ync) - sync out directory to remote server"
+  echo "}"
+}
+
+cd $WORKING_DIR
+
+if [ -z $DRAFT_DIR ]; then
+  mkdir -p $DRAFT_DIR
+fi
+
+if [ -z $POST_DIR ]; then
+  mkdir -p $POST_DIR
+fi
+
+if [ -z $BACKUP_DIR ]; then
+  mkdir -p $BACKUP_DIR
+fi
+
+# runtime
+if [ $# -eq 0 ]; then
+  print_usage
+  exit 1
+fi
+
+op=$1
+case $op in
+  "n")
+    create_post
+    ;;
+  "r")
+    remove_post
+    ;;
+  "e")
+    edit_post
+    ;;
+  "p")
+    publish_posts
+    ;;
+  "f")
+    fetch_posts
+    ;;
+  "s")
+    sync_posts
+    ;;
+  "m")
+    fetch_posts
+    publish_posts
+    sync_posts
+    ;;
+  *)
+    print_usage
+esac
+
+build_index
