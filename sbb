@@ -19,7 +19,7 @@ edit_post() {
     c=$((c+1))
   done
 
-  echo -e "index of post to edit> "
+  echo "index of post to edit> "
   read selection
   mv "$POST_DIR/${posts[$selection]}" "$DRAFT_DIR/${posts[$selection]}"
 
@@ -35,7 +35,7 @@ remove_post() {
     c=$((c+1))
   done
 
-  echo -e "index of post to remove> "
+  echo "index of post to remove> "
   read selection
 
   rm -r "$POST_DIR/${posts[$selection]}"
@@ -56,7 +56,7 @@ create_post() {
   echo >> $new_post
   echo >> $new_post
 
-  vim "$new_post/in.md"
+  vim "$new_post"
 
   echo "new draft created at $post_dir"
 }
@@ -75,24 +75,24 @@ build_index() {
 
   cat "$TEMPLATE_DIR/head_index.html" > $index_html
 
-  echo -e "<table id=\"posts\">\n" >> $index_html
-  echo -e "<tbody>\n" >> $index_html
+  echo "<table id=\"posts\">" >> $index_html
+  echo "<tbody>" >> $index_html
 
   for i in "${posts[@]}"; do
     date=$(cat "$POST_DIR/$i/in.md" | head -n 2 | tail -n 1)
     title=$(cat "$POST_DIR/$i/in.md" | head -n 1 | sed s'/\W //')
 
-    echo -e "<tr><td><span class=\"date\">$(date -d $date "+%b %y" | tr '[:upper:]' '[:lower:]')</span></td><td><a href=\"p/$i\">$title</a></div>\n" >> $index_html
+    echo "<tr><td><span class=\"date\">$(date -d $date "+%b %y" | tr '[:upper:]' '[:lower:]')</span></td><td><a href=\"p/$i\">$title</a></div>" >> $index_html
   done
 
-  echo -e "</tbody>\n" >> $index_html
-  echo -e "</table>\n" >> $index_html
+  echo "</tbody>" >> $index_html
+  echo "</table>" >> $index_html
 
   # write link list
-  echo -e "<ul id=\"links\">\n" >> $index_html
-  echo -e "<li><a href=#>git</a></li> / \n" >> $index_html
-  echo -e "<li><a href=#>linkedin</a></li> /\n" >> $index_html
-  echo -e "</ul>\n" >> $index_html
+  echo "<ul id=\"links\">" >> $index_html
+  echo "<li><a href=#>git</a></li> / " >> $index_html
+  echo "<li><a href=#>linkedin</a></li> /" >> $index_html
+  echo "</ul>" >> $index_html
 
   cat "$TEMPLATE_DIR/foot.html" >> $index_html
 }
@@ -111,8 +111,8 @@ assemble_post() {
   cat $post_html >> $index_html
   rm $post_html
 
-  echo -e "<hr>\n" >> $index_html
-  echo -e "<p class=\"quote\"><span class=\"quote-text\">\"Practiced hands make for short work, and the Good Lord knows there is much to be done here.\"</span> - <span class=\"quote-source\">Joshua Graham</span></p>" >> $index_html
+  echo "<hr>" >> $index_html
+  echo "<p class=\"quote\"><span class=\"quote-text\">\"Practiced hands make for short work, and the Good Lord knows there is much to be done here.\"</span> - <span class=\"quote-source\">Joshua Graham</span></p>" >> $index_html
 
   cat "$TEMPLATE_DIR/foot.html" >> $index_html
 }
