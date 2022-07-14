@@ -82,7 +82,7 @@ build_index() {
     date=$(cat "$POST_DIR/$i/in.md" | head -n 2 | tail -n 1)
     title=$(cat "$POST_DIR/$i/in.md" | head -n 1 | sed s'/\W //')
 
-    echo "<tr><td><span class=\"date\">$(date -d $date "+%b %y" | tr '[:upper:]' '[:lower:]')</span></td><td><a href=\"p/$i\">$title</a></td>" >> $index_html
+    echo "<tr><td><span class=\"date\">$(date -d $date "+%b %y" | tr '[:upper:]' '[:lower:]')</span></td><td><a href=\"p/$i\">$title</a></td></tr>" >> $index_html
   done
 
   echo "</tbody>" >> $index_html
