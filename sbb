@@ -82,7 +82,7 @@ build_index() {
     date=$(cat "$POST_DIR/$i/in.md" | head -n 2 | tail -n 1)
     title=$(cat "$POST_DIR/$i/in.md" | head -n 1 | sed s'/\W //')
 
-    echo "<tr><td><span class=\"date\">$(date -d $date "+%b %y" | tr '[:upper:]' '[:lower:]')</span></td><td><a href=\"p/$i\">$title</a></div>" >> $index_html
+    echo "<tr><td><span class=\"date\">$(date -d $date "+%b %y" | tr '[:upper:]' '[:lower:]')</span></td><td><a href=\"p/$i\">$title</a></td>" >> $index_html
   done
 
   echo "</tbody>" >> $index_html
@@ -170,15 +170,15 @@ print_usage() {
 
 cd $WORKING_DIR
 
-if [ -z $DRAFT_DIR ]; then
+if ! [ -d $DRAFT_DIR ]; then
   mkdir -p $DRAFT_DIR
 fi
 
-if [ -z $POST_DIR ]; then
+if ! [ -d $POST_DIR ]; then
   mkdir -p $POST_DIR
 fi
 
-if [ -z $BACKUP_DIR ]; then
+if ! [ -d $BACKUP_DIR ]; then
   mkdir -p $BACKUP_DIR
 fi
 
